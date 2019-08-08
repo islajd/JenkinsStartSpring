@@ -16,7 +16,13 @@ pipeline {
                 echo 'Success'
             }
         }
-
+        
+        stage('Create artifact copy') {
+            steps {
+                sh 'cp target/demo-*.jar target/demo.jar'
+            }
+        }
+        
         stage('Create Docker Image') {
             steps {
                 sh 'docker build -t demo_image .'
