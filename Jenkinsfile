@@ -4,7 +4,7 @@ pipeline {
         stage('Checkout') {
             steps {
                 echo 'Checkout-ing project'
-                sd 'https://github.com/islajd/test.git'
+                git 'https://github.com/islajd/test.git'
                 echo 'Checkout Success!'
             }
         }
