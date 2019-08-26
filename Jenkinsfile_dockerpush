@@ -1,0 +1,66 @@
+def remote = [:]
+remote.name = "ubuntu"
+remote.allowAnyHosts = true
+def ID
+def IP
+def STATE
+node{
+    withCredentials(
+        [[
+            $class: 'AmazonWebServicesCredentialsBinding',
+            accessKeyVariable: 'AWS_ACCESS_KEY_ID',
+            credentialsId: '694d9f3f-8ceb-4852-8a13-710083bde3ac',  // ID of credentials in Jenkins
+            secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
+        ]]) {
+        stage("create EC2 instance"){
+            sh 'aws configure set region us-east-2'
+            ID = sh (script: 'aws ec2 run-instances --image-id ami-05c1fa8df71875112 --count 1 --instance-type t2.micro --key-name KEY_AWS --security-group-ids sg-d77dc5b4 --subnet-id subnet-a9541dd3 --region us-east-2 --query \'Instances[0].InstanceId\'',returnStdout: true)
+            sh 'sleep 1m'
+        }
+        stage("get the EC2 external ip"){
+            remote.host = sh (script: "aws ec2 describe-instances --query \'Reservations[0].Instances[0].PublicIpAddress\' --instance-ids $ID",returnStdout: true)
+        }
+        withCredentials([sshUserPrivateKey(credentialsId: '07d11461-d74f-4723-bd5d-0e3cc7ec4ae5', keyFileVariable: 'identity', passphraseVariable: '', usernameVariable: 'userName')]) {
+            remote.user = userName
+            remote.identityFile = identity
+            stage("install dokcer.io") {
+                sh 'sudo apt-get update'
+                sh 'sudo apt-get install docker.io -y'
+                sh 'sudo systemctl start docker'
+                sh 'sudo systemctl enable docker'
+            }
+            stage("install openjdk"){
+                sh 'sudo apt-get update'
+                sh 'sudo apt-get install openjdk-8-jdk -y'
+            }
+            stage("install maven"){
+                sh 'sudo apt-get update'
+                sh 'sudo apt-get install maven -y'
+            }
+            stage('Checkout') {
+                echo 'Checkout-ing project'
+                git 'https://github.com/islajd/test.git'
+                echo 'Checkout Success!'
+            }
+            stage('Build Artifact') {
+                sh "mvn clean install"
+            }
+            stage('Create artifact copy') {
+                    sh 'cp target/demo-*.jar target/demo.jar'
+            }
+            stage('Create Docker Image') {
+                    sh 'sudo docker build -t islajd/test:prove .'
+            }
+            stage("push image to docker hub"){
+                withCredentials([usernamePassword(credentialsId: 'docker hub', passwordVariable: 'dockerHubPassword', usernameVariable: 'dockerHubUser')]) {
+                    sh "sudo docker login -u ${env.dockerHubUser} -p ${env.dockerHubPassword}"
+                    sh 'sudo docker push islajd/test:prove'
+                }
+            }
+        }
+        stage("terminate EC2 instance"){
+            sh "aws ec2 terminate-instances --instance-ids $ID"
+        }
+    }
+}
+          
