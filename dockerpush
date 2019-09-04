@@ -9,7 +9,7 @@ node{
         [[
             $class: 'AmazonWebServicesCredentialsBinding',
             accessKeyVariable: 'AWS_ACCESS_KEY_ID',
-            credentialsId: '694d9f3f-8ceb-4852-8a13-710083bde3ac',  // ID of credentials in Jenkins
+            credentialsId: 'aws-client',  // ID of credentials in Jenkins
             secretKeyVariable: 'AWS_SECRET_ACCESS_KEY'
         ]]) {
         stage("create EC2 instance"){
@@ -20,7 +20,7 @@ node{
         stage("get the EC2 external ip"){
             remote.host = sh (script: "aws ec2 describe-instances --query \'Reservations[0].Instances[0].PublicIpAddress\' --instance-ids $ID",returnStdout: true)
         }
-        withCredentials([sshUserPrivateKey(credentialsId: 'docker-acc', keyFileVariable: 'identity', passphraseVariable: '', usernameVariable: 'userName')]) {
+        withCredentials([sshUserPrivateKey(credentialsId: 'KEY_AWS', keyFileVariable: 'identity', passphraseVariable: '', usernameVariable: 'userName')]) {
             remote.user = userName
             remote.identityFile = identity
             stage("install dokcer.io") {
@@ -52,7 +52,7 @@ node{
                     sh 'sudo docker build -t islajd/test:prove .'
             }
             stage("push image to docker hub"){
-                withCredentials([usernamePassword(credentialsId: 'docker hub', passwordVariable: 'dockerHubPassword', usernameVariable: 'dockerHubUser')]) {
+                withCredentials([usernamePassword(credentialsId: 'docker-acc', passwordVariable: 'dockerHubPassword', usernameVariable: 'dockerHubUser')]) {
                     sh "sudo docker login -u ${env.dockerHubUser} -p ${env.dockerHubPassword}"
                     sh 'sudo docker push islajd/test:prove'
                 }
