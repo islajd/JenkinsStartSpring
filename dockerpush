@@ -20,7 +20,7 @@ node{
         stage("get the EC2 external ip"){
             remote.host = sh (script: "aws ec2 describe-instances --query \'Reservations[0].Instances[0].PublicIpAddress\' --instance-ids $ID",returnStdout: true)
         }
-        withCredentials([sshUserPrivateKey(credentialsId: '07d11461-d74f-4723-bd5d-0e3cc7ec4ae5', keyFileVariable: 'identity', passphraseVariable: '', usernameVariable: 'userName')]) {
+        withCredentials([sshUserPrivateKey(credentialsId: 'docker-acc', keyFileVariable: 'identity', passphraseVariable: '', usernameVariable: 'userName')]) {
             remote.user = userName
             remote.identityFile = identity
             stage("install dokcer.io") {
