@@ -76,6 +76,7 @@ node{
                 }
                 stage("configure the pod with test image"){
                     sh 'kubectl run test --image=islajd/test:firsttry --port=8080'
+                    sh 'kubectl get pods'
                 }
             }
        }
